@@ -125,7 +125,8 @@ body::after{
 }
 .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
 .grid{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
-@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.grid>*{min-width:0}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
 
 /* chave com/sem parceria */
 .switch{
@@ -216,7 +217,7 @@ label.f{display:block;font-size:12px;color:var(--muted);letter-spacing:.12em;tex
 }
 .money span{color:var(--muted);font-weight:600;font-size:20px}
 .money input{
-  flex:1;min-width:0;border:0;background:transparent;color:var(--text);
+  flex:1;min-width:0;width:100%;border:0;background:transparent;color:var(--text);
   font:700 26px Inter;padding:14px 10px;
 }
 .money:focus-within{border-color:rgba(255,255,255,.5)}
@@ -255,9 +256,68 @@ footer .credit{margin-top:14px}
 }
 .toast.on{opacity:1;transform:translate(-50%,0)}
 
+.credit .nw{white-space:nowrap}
+
+/* barra fixa do total (só celular) */
+.mbar{display:none}
+@media (max-width:900px){
+  .mbar{
+    position:fixed;left:12px;right:12px;bottom:12px;z-index:9;
+    display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;
+    border-radius:16px;border:1px solid var(--line-strong);
+    background:rgba(14,14,18,.92);backdrop-filter:blur(16px);
+    box-shadow:0 12px 40px rgba(0,0,0,.6);
+    transform:translateY(140%);transition:transform .3s ease;
+  }
+  .mbar.on{transform:none}
+  .mbar>div{min-width:0}
+  .mbar small{white-space:nowrap;display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .mbar strong{display:block;font-size:17px;white-space:nowrap}
+  .mbar .mv strong{color:var(--gold)}
+  .mbar button{
+    margin-left:auto;flex:none;appearance:none;border:0;cursor:pointer;
+    background:var(--marble);color:#111;font:700 12px Inter;padding:11px 14px;border-radius:11px;
+  }
+  body.has-mbar .wrap{padding-bottom:110px}
+}
+@media (max-width:380px){
+  .mbar{gap:10px;padding:10px 10px 10px 14px}
+  .mbar>div{flex:1 1 0}
+  .mbar strong{font-size:15px}
+  .mbar small{letter-spacing:.05em}
+  .mbar button{padding:11px 14px;font-size:15px}
+  .mbar button .t{display:none}
+  .pill small{letter-spacing:.06em}
+}
+
 @media (max-width:600px){
-  .hero{height:200px;margin-top:16px}
-  .card{padding:18px}
+  .wrap{padding-left:12px;padding-right:12px}
+  .hero{height:190px;margin-top:12px;border-radius:18px}
+  .credit .sep{display:none}
+  .credit .nw{display:block}
+  .credit{padding:8px 18px;border-radius:14px;line-height:1.6}
+  .toolbar .switch{width:100%}
+  .toolbar .switch button,.svc-tabs button{flex:1}
+  .svc-tabs{flex-direction:column}
+  #svcParceria .switch{width:100%}
+  #svcParceria .switch button{flex:1}
+  .items{grid-template-columns:1fr;gap:10px}
+  .item{
+    display:grid;grid-template-columns:1fr 132px;align-items:center;column-gap:10px;padding:12px 12px 12px 14px;
+  }
+  .item .pr{margin:0}
+  .item .qty{grid-column:2;grid-row:1 / span 2;gap:5px}
+  .item .qty button{width:34px;height:36px}
+  .item .qty input{height:36px}
+  .item .lt{grid-column:1 / -1;margin-top:0}
+  .item .lt:empty{display:none}
+  .item.has .lt{margin-top:8px}
+  .split{grid-template-columns:1fr 1fr;gap:8px}
+  .pill{padding:12px}
+  .pill strong{font-size:17px}
+  .actions{flex-direction:column}
+  .money input{font-size:22px}
+  .card{padding:16px}
   .tab{padding:10px 18px}
   .total strong{font-size:26px}
 }
@@ -266,7 +326,7 @@ footer .credit{margin-top:14px}
 <body>
 <div class="wrap">
 
-  <div class="credit top">Desenvolvido por: <b>GUSTA</b> <span class="sep">·</span> Discord: <b>gustashady</b></div>
+  <div class="credit top"><span class="nw">Desenvolvido por: <b>GUSTA</b></span><span class="sep">·</span><span class="nw">Discord: <b>gustashady</b></span></div>
 
   <header class="hero" role="img" aria-label="VSYNC"></header>
   <div class="hero-text">
@@ -377,8 +437,14 @@ footer .credit{margin-top:14px}
 
   <footer>
     <div><b>VSYNC</b> · comissão de <span class="pc"></span>% para quem vendeu</div>
-    <div class="credit">Desenvolvido por: <b>GUSTA</b> <span class="sep">·</span> Discord: <b>gustashady</b></div>
+    <div class="credit"><span class="nw">Desenvolvido por: <b>GUSTA</b></span><span class="sep">·</span><span class="nw">Discord: <b>gustashady</b></span></div>
   </footer>
+</div>
+
+<div class="mbar" id="mbar">
+  <div><small>Total</small><strong id="mTotal">$ 0</strong></div>
+  <div class="mv"><small>Vendedor (<span class="pc"></span>%)</small><strong id="mVend">$ 0</strong></div>
+  <button id="mVer" aria-label="Ver resumo"><span class="t">Resumo </span>↓</button>
 </div>
 
 <div class="toast" id="toast">Copiado!</div>
@@ -472,8 +538,26 @@ footer .credit{margin-top:14px}
     $("#total").textContent = money(total);
     $("#vendedor").textContent = money(vend);
     $("#faccao").textContent = money(total - vend);
+    $("#mTotal").textContent = money(total);
+    $("#mVend").textContent = money(vend);
     calcItens.last = { linhas, total, vend };
+    atualizaBarra();
   }
+
+  /* barra do total no celular: aparece com itens, some quando o resumo está na tela */
+  let resumoVisivel = false;
+  function atualizaBarra(){
+    const naAbaItens = $("#view-itens").classList.contains("on");
+    const on = naAbaItens && calcItens.last && calcItens.last.total > 0 && !resumoVisivel;
+    $("#mbar").classList.toggle("on", !!on);
+    document.body.classList.toggle("has-mbar", !!on);
+  }
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(es => { resumoVisivel = es[0].isIntersecting; atualizaBarra(); })
+      .observe(document.querySelector("#view-itens .summary"));
+  }
+  $("#mVer").onclick = () => document.querySelector("#view-itens .summary").scrollIntoView({behavior:"smooth", block:"start"});
+  document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => setTimeout(atualizaBarra)));
 
   $("#limpar").onclick = () => {
     qtd.fill(0); box.querySelectorAll("input").forEach(i => i.value = 0); calcItens();
