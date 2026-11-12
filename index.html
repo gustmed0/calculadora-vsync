@@ -15,7 +15,8 @@
    ========================================================= */
 const CONFIG = {
   moeda: "$",
-  comissaoVendedor: 15, // % de comissão de quem vendeu (em todas as vendas)
+  comissaoVendedor: 15, // % de comissão de quem vendeu — ITENS
+  comissaoServicos: 10, // % de comissão de quem vendeu — SERVIÇOS (sai da parte da facção)
 
   // Itens: preço por unidade com e sem parceria
   itens: [
@@ -29,11 +30,12 @@ const CONFIG = {
 
   // Serviços: porcentagens da tabela (cliente / facção)
   servicos: {
-    lavagem:  { nome: "Lavagem de dinheiro", cliente: 70, faccao: 30 },
+    // maquina = % que a máquina retira automaticamente
+    lavagem:  { nome: "Lavagem de dinheiro", cliente: 70, faccao: 20, maquina: 10 },
     desmanche:{ nome: "Desmanche",
                 com: { cliente: 80, faccao: 20 },
                 sem: { cliente: 70, faccao: 30 } },
-    secagem:  { nome: "Secagem de dinheiro", cliente: 50, faccao: 20 }
+    secagem:  { nome: "Secagem de dinheiro", cliente: 50, faccao: 20, maquina: 10 }
   }
 };
 </script>
@@ -411,13 +413,14 @@ footer .credit{margin-top:14px}
         <h2 id="svcTitulo">Resultado</h2>
         <p class="sub" id="svcSub"></p>
         <div class="row"><span class="k">Valor recebido</span><span id="svcValor">$ 0</span></div>
+        <div class="row" id="svcMaqRow"><span class="k">Máquina retira (<span id="svcMaqPc"></span>%)</span><span id="svcMaq">$ 0</span></div>
         <div class="total">
           <small>Cliente recebe</small>
           <strong id="svcCliente">$ 0</strong>
         </div>
         <div class="split">
           <div class="pill seller">
-            <small>Vendedor (<span class="pc"></span>%)</small>
+            <small>Vendedor (<span class="pcs"></span>%)</small>
             <strong id="svcVendedor">$ 0</strong>
           </div>
           <div class="pill fac">
@@ -436,7 +439,7 @@ footer .credit{margin-top:14px}
   </section>
 
   <footer>
-    <div><b>VSYNC</b> · comissão de <span class="pc"></span>% para quem vendeu</div>
+    <div><b>VSYNC</b> · comissão do vendedor: <span class="pc"></span>% em itens · <span class="pcs"></span>% em serviços</div>
     <div class="credit"><span class="nw">Desenvolvido por: <b>GUSTA</b></span><span class="sep">·</span><span class="nw">Discord: <b>gustashady</b></span></div>
   </footer>
 </div>
@@ -456,6 +459,7 @@ footer .credit{margin-top:14px}
   const money = n => C.moeda + " " + Math.round(n).toLocaleString("pt-BR");
   const parse = v => Number(String(v).replace(/\D/g,"")) || 0;
   document.querySelectorAll(".pc").forEach(e => e.textContent = C.comissaoVendedor);
+  document.querySelectorAll(".pcs").forEach(e => e.textContent = C.comissaoServicos);
 
   /* ---------- abas ---------- */
   document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
@@ -611,38 +615,46 @@ footer .credit{margin-top:14px}
   function calcSvc(){
     const s = S[svc], t = taxas(), v = parse(inp.value);
     const cli = v * t.cliente / 100, fac = v * t.faccao / 100;
-    const vend = fac * C.comissaoVendedor / 100;
-    const resto = Math.max(0, 100 - t.cliente - t.faccao);
+    const maqPc = t.maquina || 0, maq = v * maqPc / 100;
+    const vend = fac * C.comissaoServicos / 100;
+    const resto = Math.max(0, 100 - t.cliente - t.faccao - maqPc);
 
     $("#svcParceria").style.display = s.com ? "block" : "none";
     $("#svcTitulo").textContent = s.nome;
     $("#svcSub").textContent = s.com ? (svcModo === "com" ? "Com parceria" : "Sem parceria") : "Tabela padrão";
     $("#svcValor").textContent = money(v);
     $("#svcCliente").textContent = money(cli);
+    $("#svcMaqRow").style.display = maqPc ? "flex" : "none";
+    $("#svcMaqPc").textContent = maqPc;
+    $("#svcMaq").textContent = "− " + money(maq);
     $("#svcVendedor").textContent = money(vend);
     $("#svcFaccao").textContent = money(fac - vend);
 
     $("#rates").innerHTML =
       `<div class="rate">Cliente: <b>${t.cliente}%</b></div>` +
       `<div class="rate">Facção: <b>${t.faccao}%</b></div>` +
+      (maqPc ? `<div class="rate">Máquina: <b>${maqPc}%</b></div>` : "") +
       (resto ? `<div class="rate">Restante: <b>${resto}%</b></div>` : "");
 
-    const fv = t.faccao * (1 - C.comissaoVendedor / 100), vv = t.faccao - fv;
+    const fv = t.faccao * (1 - C.comissaoServicos / 100), vv = t.faccao - fv;
     $("#svcBar").innerHTML =
       `<i style="width:${t.cliente}%;background:#e9e6df"></i>` +
       `<i style="width:${vv}%;background:var(--gold)"></i>` +
-      `<i style="width:${fv}%;background:var(--good)"></i>`;
+      `<i style="width:${fv}%;background:var(--good)"></i>` +
+      (maqPc ? `<i style="width:${maqPc}%;background:#8a5a5a"></i>` : "");
     $("#svcLegend").innerHTML =
       `<span style="--c:#e9e6df">Cliente</span>` +
       `<span style="--c:var(--gold)">Vendedor</span>` +
       `<span style="--c:var(--good)">Facção</span>` +
+      (maqPc ? `<span style="--c:#8a5a5a">Máquina ${maqPc}%</span>` : "") +
       (resto ? `<span style="--c:rgba(255,255,255,.12)">Restante ${resto}%</span>` : "");
 
     $("#svcNote").textContent =
-      `A comissão de ${C.comissaoVendedor}% do vendedor sai da parte da facção.` +
+      (maqPc ? `A máquina retira ${maqPc}% automaticamente. ` : "") +
+      `A comissão de ${C.comissaoServicos}% do vendedor sai da parte da facção.` +
       (resto ? ` Pela tabela, ${resto}% (${money(v * resto / 100)}) não fica nem com o cliente nem com a facção.` : "");
 
-    calcSvc.last = { s, t, v, cli, fac, vend };
+    calcSvc.last = { s, t, v, cli, fac, vend, maq, maqPc };
   }
 
   $("#copiarSvc").onclick = () => {
@@ -651,8 +663,9 @@ footer .credit{margin-top:14px}
     copy([
       `**VSYNC — ${r.s.nome}${r.s.com ? (svcModo === "com" ? " (com parceria)" : " (sem parceria)") : ""}**`,
       `Valor: ${money(r.v)}`,
+      ...(r.maqPc ? [`Máquina (${r.maqPc}%): − ${money(r.maq)}`] : []),
       `**Cliente recebe (${r.t.cliente}%): ${money(r.cli)}**`,
-      `Vendedor (${C.comissaoVendedor}%): ${money(r.vend)}`,
+      `Vendedor (${C.comissaoServicos}%): ${money(r.vend)}`,
       `Facção: ${money(r.fac - r.vend)}`
     ].join("\n"));
   };
