@@ -31,7 +31,9 @@ const CONFIG = {
   // Serviços: porcentagens da tabela (cliente / facção)
   servicos: {
     // maquina = % que a máquina retira automaticamente
-    lavagem:  { nome: "Lavagem de dinheiro", cliente: 70, faccao: 20, maquina: 10 },
+    // vendedor = % do valor total que vai pro vendedor (sai da parte da facção).
+    // Sem esse campo, o vendedor ganha comissaoServicos % da parte da facção.
+    lavagem:  { nome: "Lavagem de dinheiro", cliente: 70, faccao: 20, maquina: 10, vendedor: 10 },
     desmanche:{ nome: "Desmanche",
                 com: { cliente: 80, faccao: 20 },
                 sem: { cliente: 70, faccao: 30 } },
@@ -616,7 +618,8 @@ footer .credit{margin-top:14px}
     const s = S[svc], t = taxas(), v = parse(inp.value);
     const cli = v * t.cliente / 100, fac = v * t.faccao / 100;
     const maqPc = t.maquina || 0, maq = v * maqPc / 100;
-    const vend = fac * C.comissaoServicos / 100;
+    const vendPcTotal = t.vendedor != null ? t.vendedor : t.faccao * C.comissaoServicos / 100;
+    const vend = v * vendPcTotal / 100;
     const resto = Math.max(0, 100 - t.cliente - t.faccao - maqPc);
 
     $("#svcParceria").style.display = s.com ? "block" : "none";
@@ -636,7 +639,7 @@ footer .credit{margin-top:14px}
       (maqPc ? `<div class="rate">Máquina: <b>${maqPc}%</b></div>` : "") +
       (resto ? `<div class="rate">Restante: <b>${resto}%</b></div>` : "");
 
-    const fv = t.faccao * (1 - C.comissaoServicos / 100), vv = t.faccao - fv;
+    const vv = vendPcTotal, fv = t.faccao - vv;
     $("#svcBar").innerHTML =
       `<i style="width:${t.cliente}%;background:#e9e6df"></i>` +
       `<i style="width:${vv}%;background:var(--gold)"></i>` +
@@ -651,7 +654,9 @@ footer .credit{margin-top:14px}
 
     $("#svcNote").textContent =
       (maqPc ? `A máquina retira ${maqPc}% automaticamente. ` : "") +
-      `A comissão de ${C.comissaoServicos}% do vendedor sai da parte da facção.` +
+      (t.vendedor != null
+        ? `Os ${t.faccao}% da facção são divididos: ${t.vendedor}% do valor para o vendedor e ${t.faccao - t.vendedor}% para a facção.`
+        : `A comissão de ${C.comissaoServicos}% do vendedor sai da parte da facção.`) +
       (resto ? ` Pela tabela, ${resto}% (${money(v * resto / 100)}) não fica nem com o cliente nem com a facção.` : "");
 
     calcSvc.last = { s, t, v, cli, fac, vend, maq, maqPc };
